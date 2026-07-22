@@ -113,9 +113,9 @@ export type MigrateProduct = (typeof MIGRATE_PRODUCTS)[number];
 
 /**
  * Render a command as the literal CLI invocation that will be run.
- * e.g. 'default' → "posthog-wizard", 'revenue' → "posthog-wizard revenue",
- * 'skill' → "posthog-wizard --skill=<skill-id>",
- * 'migrate' → "posthog-wizard migrate --product=<product>".
+ * e.g. 'default' → "wizard", 'revenue-analytics' → "wizard revenue-analytics",
+ * 'skill' → "wizard --skill=<skill-id>",
+ * 'migrate' → "wizard migrate --product=<product>".
  */
 export function commandToInvocation(
   id: string,

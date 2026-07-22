@@ -194,7 +194,7 @@ export function runWizard(appPath: string, options: WizardOptions = {}): Promise
     });
   }
 
-  // Build wizard args — subcommand (e.g. 'revenue', or a family leaf like
+  // Build wizard args — subcommand (e.g. 'revenue-analytics', or a family leaf like
   // 'audit events') must come before flags. Split on whitespace so multi-token
   // subcommands become separate argv entries.
   const args = [wizardBin];
@@ -465,4 +465,3 @@ export function runEvaluatorOnBranch(options: EvaluateOnBranchOptions): Promise<
     });
   });
 }
-

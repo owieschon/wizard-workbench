@@ -155,14 +155,8 @@ _(Latest)_
 
 <p align="right"> &nbsp;</p>
 
-_You can see all change logs [Here](/CHANGELOG.md)._
-
-<p align="right"> &nbsp;</p>
-
----
-
 Author:
 
-[Arslan Ameer](www.arslanameer.com) | [GitHub](https://github.com/ArslanAmeer)
+[Arslan Ameer](https://www.arslanameer.com) | [GitHub](https://github.com/ArslanAmeer)
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/arslanameer)

@@ -1,18 +1,31 @@
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { query, type CanUseTool } from "@anthropic-ai/claude-agent-sdk";
 import { PostHog } from "posthog-node";
+import { realpathSync } from "node:fs";
+import { isAbsolute, relative, resolve } from "node:path";
 import { z } from "zod";
 import { postPRComment, type PRData } from "../github/index.js";
-import { buildSystemPrompt, buildUserPrompt } from "./prompt-builder.js";
+import {
+  buildSystemPrompt,
+  buildUserPrompt,
+  rubricModeForCommand,
+  type RubricMode,
+} from "./prompt-builder.js";
 
 export interface EvaluateOptions {
   prData: PRData;
   testRun?: boolean;
   testRunDir?: string;
   /**
-   * Wizard command id the PR was produced by (e.g., "revenue"). Selects
+   * Wizard command id the PR was produced by (e.g., "revenue-analytics"). Selects
    * the rubric in `buildSystemPrompt`. Omit for the default integration.
    */
   command?: string;
+}
+
+export interface EvaluateDependencies {
+  queryProvider?: typeof query;
+  captureOutcome?: (properties: Record<string, unknown>) => Promise<void>;
+  postComment?: typeof postPRComment;
 }
 
 export interface EvaluateScores {
@@ -30,6 +43,56 @@ export interface EvaluateResult {
   commentUrl?: string;
   scores?: EvaluateScores;
   rubric?: RubricData;
+}
+
+const EVALUATOR_TOOLS = ["Read", "Grep", "Glob"] as const;
+
+function isInsideRoot(root: string, candidate: string): boolean {
+  const pathFromRoot = relative(root, candidate);
+  return pathFromRoot === "" || (!pathFromRoot.startsWith("..") && !isAbsolute(pathFromRoot));
+}
+
+function requestedToolPath(
+  toolName: string,
+  input: Record<string, unknown>,
+): string | undefined {
+  if (toolName === "Read") return typeof input.file_path === "string" ? input.file_path : undefined;
+  if (toolName === "Grep") return typeof input.path === "string" ? input.path : ".";
+  if (toolName === "Glob") {
+    if (typeof input.pattern !== "string" || isAbsolute(input.pattern)) return undefined;
+    const segments = input.pattern.split(/[\\/]/);
+    if (segments.includes("..")) return undefined;
+    if (typeof input.path === "string") return input.path;
+    const staticPrefix = segments.filter(Boolean).findIndex((segment) => /[*?\[\]{}!]/.test(segment));
+    const prefixSegments = staticPrefix === -1 ? segments : segments.slice(0, staticPrefix);
+    return prefixSegments.filter(Boolean).join("/") || ".";
+  }
+  return undefined;
+}
+
+/** Permit only repository-scoped discovery tools for PR-authored evaluation input. */
+export function buildEvaluatorToolPermission(root: string): CanUseTool {
+  const repositoryRoot = realpathSync(resolve(root));
+  return async (toolName, input) => {
+    if (!(EVALUATOR_TOOLS as readonly string[]).includes(toolName)) {
+      return { behavior: "deny", message: `${toolName} is not available to the PR evaluator` };
+    }
+    const requested = requestedToolPath(toolName, input);
+    if (requested === undefined || requested.includes("\0")) {
+      return { behavior: "deny", message: `${toolName} requires a repository-scoped path` };
+    }
+    const candidate = resolve(repositoryRoot, requested);
+    let resolvedCandidate: string;
+    try {
+      resolvedCandidate = realpathSync(candidate);
+    } catch {
+      return { behavior: "deny", message: `${toolName} cannot access an unresolved path` };
+    }
+    if (!isInsideRoot(repositoryRoot, resolvedCandidate)) {
+      return { behavior: "deny", message: `${toolName} cannot access paths outside the repository` };
+    }
+    return { behavior: "allow", updatedInput: input };
+  };
 }
 
 // ── Rubric types & scoring ───────────────────────────────────────────────────
@@ -198,10 +261,93 @@ export function configureGateway(apiKey: string, region: string): void {
 
 // ── PostHog analytics ─────────────────────────────────────────────────────
 
+export function buildEvalEventProperties(
+  scores: EvaluateScores,
+  prData: PRData,
+  usageData: { totalCostUsd?: number; usage?: Record<string, number> },
+  command?: string,
+  rubricMode = rubricModeForCommand(command),
+): Record<string, unknown> {
+  return {
+    file_analysis: scores.file_analysis,
+    app_sanity: scores.app_sanity,
+    posthog_implementation: scores.posthog_implementation,
+    event_quality: scores.event_quality,
+    confidence: scores.confidence,
+    framework: scores.framework,
+    arch_type: scores.arch_type,
+    pr_number: prData.number,
+    pr_author: prData.author,
+    files_changed: prData.files.length,
+    cost_usd: usageData.totalCostUsd,
+    input_tokens: usageData.usage?.input_tokens,
+    output_tokens: usageData.usage?.output_tokens,
+    wizard_command: command ?? "default",
+    rubric_mode: rubricMode,
+  };
+}
+
+export function buildEvalOutcomeEventProperties(
+  prData: PRData,
+  command: string | undefined,
+  rubricMode: RubricMode | "unknown-command",
+  outcome: "completed" | "unknown_command" | "model_failed" | "output_invalid" | "comment_failed",
+  failureClass: "unknown_command" | "model_failed" | "output_invalid" | "comment_failed" | null,
+  modelInvoked: boolean,
+): Record<string, unknown> {
+  return {
+    pr_number: prData.number,
+    pr_author: prData.author,
+    files_changed: prData.files.length,
+    wizard_command: command ?? "default",
+    rubric_mode: rubricMode,
+    outcome,
+    failure_class: failureClass,
+    model_invoked: modelInvoked,
+  };
+}
+
+async function captureEvalOutcomeEvent(properties: Record<string, unknown>): Promise<void> {
+  const apiKey = process.env.POSTHOG_PROJECT_TOKEN;
+  if (!apiKey) return;
+
+  try {
+    const client = new PostHog(apiKey, { host: "https://us.i.posthog.com" });
+    client.capture({
+      distinctId: `wizard-eval-${String(properties.pr_number)}`,
+      event: "wizard_eval_outcome",
+      properties,
+    });
+    await client.shutdown();
+    console.log("PostHog event captured: wizard_eval_outcome");
+  } catch (error) {
+    console.warn(
+      `Warning: Failed to capture PostHog event: ${error instanceof Error ? error.message : error}`,
+    );
+  }
+}
+
+export function applyRubricDisclosure(
+  comment: string,
+  command: string | undefined,
+  rubricMode: RubricMode,
+): string {
+  if (rubricMode !== "generic-fallback") return comment;
+
+  const commandId = command ?? "default";
+  return (
+    `> **Rubric scope:** \`${commandId}\` has no command-specific evaluator rubric. ` +
+    "The scores below cover the generic integration rubric; they do not verify " +
+    `\`${commandId}\`-specific behavior.\n\n${comment}`
+  );
+}
+
 async function captureEvalEvent(
   scores: EvaluateScores,
   prData: PRData,
-  usageData: { totalCostUsd?: number; usage?: Record<string, number> }
+  usageData: { totalCostUsd?: number; usage?: Record<string, number> },
+  command?: string,
+  rubricMode = rubricModeForCommand(command),
 ): Promise<void> {
   const apiKey = process.env.POSTHOG_PROJECT_TOKEN;
   if (!apiKey) {
@@ -214,21 +360,7 @@ async function captureEvalEvent(
     client.capture({
       distinctId: `wizard-eval-${prData.headBranch}`,
       event: "wizard_eval",
-      properties: {
-        file_analysis: scores.file_analysis,
-        app_sanity: scores.app_sanity,
-        posthog_implementation: scores.posthog_implementation,
-        event_quality: scores.event_quality,
-        confidence: scores.confidence,
-        framework: scores.framework,
-        arch_type: scores.arch_type,
-        pr_number: prData.number,
-        pr_author: prData.author,
-        files_changed: prData.files.length,
-        cost_usd: usageData.totalCostUsd,
-        input_tokens: usageData.usage?.input_tokens,
-        output_tokens: usageData.usage?.output_tokens,
-      },
+      properties: buildEvalEventProperties(scores, prData, usageData, command, rubricMode),
     });
     await client.shutdown();
     console.log("PostHog event captured: wizard_eval");
@@ -237,8 +369,42 @@ async function captureEvalEvent(
   }
 }
 
-export async function evaluatePR(options: EvaluateOptions): Promise<EvaluateResult> {
+export async function evaluatePR(
+  options: EvaluateOptions,
+  dependencies: EvaluateDependencies = {},
+): Promise<EvaluateResult> {
   const { prData, testRun = false, testRunDir, command } = options;
+  const queryProvider = dependencies.queryProvider ?? query;
+  const captureOutcome = dependencies.captureOutcome ?? captureEvalOutcomeEvent;
+  const postComment = dependencies.postComment ?? postPRComment;
+  let outcomeCaptured = false;
+  const emitOutcome = async (
+    mode: RubricMode | "unknown-command",
+    outcome: "completed" | "unknown_command" | "model_failed" | "output_invalid" | "comment_failed",
+    failureClass: "unknown_command" | "model_failed" | "output_invalid" | "comment_failed" | null,
+    modelInvoked: boolean,
+  ): Promise<void> => {
+    if (outcomeCaptured) return;
+    outcomeCaptured = true;
+    await captureOutcome(
+      buildEvalOutcomeEventProperties(
+        prData,
+        command,
+        mode,
+        outcome,
+        failureClass,
+        modelInvoked,
+      ),
+    );
+  };
+
+  let rubricMode: RubricMode;
+  try {
+    rubricMode = rubricModeForCommand(command);
+  } catch (error) {
+    await emitOutcome("unknown-command", "unknown_command", "unknown_command", false);
+    throw error;
+  }
 
   const systemPrompt = await buildSystemPrompt(prData, { command });
   const userPrompt = buildUserPrompt(prData);
@@ -265,16 +431,19 @@ export async function evaluatePR(options: EvaluateOptions): Promise<EvaluateResu
 
   // Collect stderr output for error reporting
   const stderrOutput: string[] = [];
+  const evaluatorRoot = process.cwd();
+  const canUseEvaluatorTool = buildEvaluatorToolPermission(evaluatorRoot);
 
   try {
-  for await (const message of query({
+  for await (const message of queryProvider({
     prompt: userPrompt,
     options: {
       model: process.env.EVALUATOR_MODEL || "claude-opus-4-6",
-      allowedTools: ["Read", "Grep", "Glob", "Bash"],
-      cwd: process.cwd(),
-      // Use acceptEdits instead of bypassPermissions - the latter doesn't work as root in Docker
-      permissionMode: "acceptEdits",
+      tools: [...EVALUATOR_TOOLS],
+      canUseTool: canUseEvaluatorTool,
+      cwd: evaluatorRoot,
+      permissionMode: "dontAsk",
+      settingSources: [],
       systemPrompt,
       // Capture stderr from the Claude Code subprocess for error diagnostics
       stderr: (data: string) => {
@@ -319,6 +488,7 @@ export async function evaluatePR(options: EvaluateOptions): Promise<EvaluateResu
     }
   }
   } catch (error) {
+    await emitOutcome(rubricMode, "model_failed", "model_failed", true);
     console.error("Agent query error:", error);
     if (stderrOutput.length > 0) {
       console.error("\n--- Collected stderr output ---");
@@ -333,35 +503,43 @@ export async function evaluatePR(options: EvaluateOptions): Promise<EvaluateResu
 
     // Retry with no tools — force the agent to produce the report from the diff alone
     resultText = "";
-    for await (const message of query({
-      prompt: userPrompt + "\n\nIMPORTANT: Produce the full evaluation report NOW based on the diff above. Do NOT use any tools.",
-      options: {
-        model: process.env.EVALUATOR_MODEL || "claude-opus-4-6",
-        maxTurns: 1,
-        allowedTools: [],
-        cwd: process.cwd(),
-        permissionMode: "acceptEdits",
-        systemPrompt,
-      },
-    })) {
-      if (message.type === "result" && message.subtype === "success") {
-        resultText = message.result;
-        usageData = {
-          usage: message.usage,
-          modelUsage: message.modelUsage,
-          totalCostUsd: (usageData.totalCostUsd ?? 0) + (message.total_cost_usd ?? 0),
-        };
-        console.log("Retry completed evaluation");
+    try {
+      for await (const message of queryProvider({
+        prompt: userPrompt + "\n\nIMPORTANT: Produce the full evaluation report NOW based on the diff above. Do NOT use any tools.",
+        options: {
+          model: process.env.EVALUATOR_MODEL || "claude-opus-4-6",
+          maxTurns: 1,
+          allowedTools: [],
+          tools: [],
+          cwd: evaluatorRoot,
+          permissionMode: "dontAsk",
+          settingSources: [],
+          systemPrompt,
+        },
+      })) {
+        if (message.type === "result" && message.subtype === "success") {
+          resultText = message.result;
+          usageData = {
+            usage: message.usage,
+            modelUsage: message.modelUsage,
+            totalCostUsd: (usageData.totalCostUsd ?? 0) + (message.total_cost_usd ?? 0),
+          };
+          console.log("Retry completed evaluation");
+        }
       }
+    } catch (error) {
+      await emitOutcome(rubricMode, "model_failed", "model_failed", true);
+      throw error;
     }
 
     if (!resultText) {
+      await emitOutcome(rubricMode, "output_invalid", "output_invalid", true);
       throw new Error("No result received from agent (including retry)");
     }
   }
 
   // The agent outputs markdown directly - use it as the review comment
-  let reviewComment = resultText.trim();
+  let reviewComment = applyRubricDisclosure(resultText.trim(), command, rubricMode);
 
   // Check evaluation completeness — warn if less than half of changed files are mentioned
   const changedFiles = options.prData.files.map((f) => f.filename);
@@ -474,13 +652,15 @@ ${JSON.stringify(usageData.modelUsage, null, 2)}
   }
 
   let commentUrl: string | undefined;
+  let commentFailed = false;
   if (!testRun && prData.number > 0) {
     console.log("\nPosting review comment to GitHub...");
     try {
-      commentUrl = postPRComment(prData.number, reviewComment, process.cwd());
+      commentUrl = postComment(prData.number, reviewComment, process.cwd());
       console.log(`Comment posted: ${commentUrl}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      commentFailed = true;
       console.warn(`Warning: Failed to post comment to GitHub: ${message}`);
       console.log("\n--- Review Comment (not posted) ---");
       console.log(reviewComment);
@@ -494,7 +674,15 @@ ${JSON.stringify(usageData.modelUsage, null, 2)}
 
   // Send wizard_eval event to PostHog for tracking over time
   if (scores) {
-    await captureEvalEvent(scores, prData, usageData);
+    await captureEvalEvent(scores, prData, usageData, command, rubricMode);
+  }
+
+  if (commentFailed) {
+    await emitOutcome(rubricMode, "comment_failed", "comment_failed", true);
+  } else if (!scores) {
+    await emitOutcome(rubricMode, "output_invalid", "output_invalid", true);
+  } else {
+    await emitOutcome(rubricMode, "completed", null, true);
   }
 
   return { reviewComment, commentUrl, scores, rubric };

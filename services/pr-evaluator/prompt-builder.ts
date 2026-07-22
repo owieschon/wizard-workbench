@@ -4,6 +4,7 @@ import { dirname, join } from "path";
 import { homedir } from "os";
 import sanitizeHtml from "sanitize-html";
 import type { PRData } from "../github/index.js";
+import { findCommand } from "../wizard-commands.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -23,8 +24,24 @@ const OUTPUT_FORMAT_REVENUE = readFileSync(
 
 /** Per-command prompt overrides. Extend when a new command gets its own rubric. */
 const PROMPTS_BY_COMMAND: Record<string, { rubric: string; outputFormat: string }> = {
-  revenue: { rubric: EVALUATION_CRITERIA_REVENUE, outputFormat: OUTPUT_FORMAT_REVENUE },
+  "revenue-analytics": {
+    rubric: EVALUATION_CRITERIA_REVENUE,
+    outputFormat: OUTPUT_FORMAT_REVENUE,
+  },
 };
+
+export type RubricMode = "default" | "command-specific" | "generic-fallback";
+
+/** Resolve rubric authority before any model call. Unknown command IDs fail closed. */
+export function rubricModeForCommand(commandId?: string): RubricMode {
+  if (!commandId || commandId === "default") return "default";
+  if (!findCommand(commandId)) {
+    throw new Error(
+      `Unknown wizard command "${commandId}"; no evaluation was run. Choose an id from apps/manifest.json.`,
+    );
+  }
+  return PROMPTS_BY_COMMAND[commandId] ? "command-specific" : "generic-fallback";
+}
 
 // Commandments loading: fetch from GitHub > COMMANDMENTS_PATH env var > vendored fallback
 const VENDORED_COMMANDMENTS = join(__dirname, "prompts/commandments.yaml");
@@ -323,14 +340,22 @@ export async function buildSystemPrompt(
   options: { command?: string } = {},
 ): Promise<string> {
   const commandId = options.command;
-  const override = commandId ? PROMPTS_BY_COMMAND[commandId] : undefined;
+  const rubricMode = rubricModeForCommand(commandId);
+  const override = rubricMode === "command-specific" ? PROMPTS_BY_COMMAND[commandId!] : undefined;
   const rubric = override?.rubric ?? EVALUATION_CRITERIA;
   const outputFormat = override?.outputFormat ?? OUTPUT_FORMAT;
 
   const base: string[] = [TASK_PROMPT];
-  if (commandId && commandId !== "default") {
+  if (commandId && rubricMode === "command-specific") {
     base.push(
       `You are evaluating a PR produced by the **${commandId}** wizard command, not the default PostHog integration. Score against the ${commandId}-specific rubric below.`,
+    );
+  } else if (commandId && rubricMode === "generic-fallback") {
+    console.warn(
+      `No command-specific evaluator rubric is registered for "${commandId}"; using the generic integration rubric and marking command-specific coverage unverified.`,
+    );
+    base.push(
+      `You are evaluating a PR produced by the **${commandId}** wizard command. No command-specific evaluator rubric is registered for this command, so the generic integration rubric below is a fallback. Apply it only where relevant. A passing result does not validate ${commandId}-specific behavior; report that coverage as unverified.`,
     );
   }
   base.push(rubric, outputFormat);

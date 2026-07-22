@@ -1,3 +1,4 @@
+<!-- sourcebound:allow restatement reason="Confirmation and magic-link templates repeat navigation steps before distinct HTML examples" -->
 # 1. Create .env file (copy the content above)
 # 2. Install dependencies
 npm install

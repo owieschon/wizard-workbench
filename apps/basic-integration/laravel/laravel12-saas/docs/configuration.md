@@ -218,4 +218,4 @@ APP_DEBUG=false
 
 - [SEO Configuration](seo.md)
 - [Billing Setup](billing.md)
-- [Deployment Guide](deployment.md)
+- [Quick Start](quick-start.md)

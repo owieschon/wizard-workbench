@@ -8,10 +8,10 @@
  *
  * Usage:
  *   npx tsx services/wizard-run/index.ts                         # Full interactive flow
- *   npx tsx services/wizard-run/index.ts --command revenue       # Skip command picker
+ *   npx tsx services/wizard-run/index.ts --command revenue-analytics # Skip command picker
  *   npx tsx services/wizard-run/index.ts --ci                    # CI mode
  *
- * Adding a new wizard command: append to WIZARD_COMMANDS in wizard-commands.ts.
+ * Adding a new wizard command: register it in apps/manifest.json.
  * Adding a new test app: drop a project under /apps; it appears automatically.
  */
 import "dotenv/config";
