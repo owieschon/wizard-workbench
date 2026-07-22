@@ -19,7 +19,6 @@ it!
 - [Pull Request Process](#pull-request-process)
 - [Testing Guidelines](#testing-guidelines)
 - [Style Guide](#style-guide)
-- [Additional Sections to Consider](#additional-sections-to-consider)
 
 ## Code of Conduct
 

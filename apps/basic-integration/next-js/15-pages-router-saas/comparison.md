@@ -119,7 +119,7 @@ This document provides a comprehensive comparison between the **App Router** (`1
 
 ### App Router
 
-**File**: [app/(dashboard)/dashboard/general/page.tsx](15-app-router-saas/app/(dashboard)/dashboard/general/page.tsx)
+**File**: [app/(dashboard)/dashboard/general/page.tsx](../15-app-router-saas/app/%28dashboard%29/dashboard/general/page.tsx)
 
 ```tsx
 // Automatically creates route: /dashboard/general
@@ -135,7 +135,7 @@ export default function GeneralPage() {
 
 ### Pages Router
 
-**File**: [pages/dashboard/general.tsx](15-pages-router-saas/pages/dashboard/general.tsx)
+**File**: [pages/dashboard/general.tsx](pages/dashboard/general.tsx)
 
 ```tsx
 // Automatically creates route: /dashboard/general
@@ -168,7 +168,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
 **Server Components** (default):
 
-[app/(dashboard)/dashboard/page.tsx:272-287](15-app-router-saas/app/(dashboard)/dashboard/page.tsx#L272-L287)
+[app/(dashboard)/dashboard/page.tsx:272-287](../15-app-router-saas/app/%28dashboard%29/dashboard/page.tsx#L272-L287)
 
 ```tsx
 export default async function SettingsPage() {
@@ -187,7 +187,7 @@ export default async function SettingsPage() {
 
 **Client Components** (with `'use client'`):
 
-[app/(dashboard)/dashboard/page.tsx:40-46](15-app-router-saas/app/(dashboard)/dashboard/page.tsx#L40-L46)
+[app/(dashboard)/dashboard/page.tsx:40-46](../15-app-router-saas/app/%28dashboard%29/dashboard/page.tsx#L40-L46)
 
 ```tsx
 'use client';
@@ -202,7 +202,7 @@ function ManageSubscription() {
 
 **Server-Side** (`getServerSideProps`):
 
-[pages/dashboard/index.tsx](15-pages-router-saas/pages/dashboard/index.tsx)
+[pages/dashboard/index.tsx](pages/dashboard/index.tsx)
 
 ```tsx
 export const getServerSideProps: GetServerSideProps = async (context) => {
@@ -247,7 +247,7 @@ export default function DashboardPage() {
 
 **Server Component** (default):
 
-[app/(dashboard)/page.tsx:5-130](15-app-router-saas/app/(dashboard)/page.tsx#L5-L130)
+[app/(dashboard)/page.tsx:5-130](../15-app-router-saas/app/%28dashboard%29/page.tsx#L5-L130)
 
 ```tsx
 // No 'use client' = Server Component
@@ -266,7 +266,7 @@ export default function HomePage() {
 
 **Client Component**:
 
-[app/(dashboard)/terminal.tsx:1-68](15-app-router-saas/app/(dashboard)/terminal.tsx#L1-L68)
+[app/(dashboard)/terminal.tsx:1-68](../15-app-router-saas/app/%28dashboard%29/terminal.tsx#L1-L68)
 
 ```tsx
 'use client'; // Explicit opt-in
@@ -286,7 +286,7 @@ export function Terminal() {
 
 **All Components are Client Components**:
 
-[pages/index.tsx](15-pages-router-saas/pages/index.tsx)
+[pages/index.tsx](pages/index.tsx)
 
 ```tsx
 // No 'use client' needed - everything is client by default
@@ -327,7 +327,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
 
 ### App Router (Route Handlers)
 
-**File**: [app/api/user/route.ts:1-7](15-app-router-saas/app/api/user/route.ts#L1-L7)
+**File**: [app/api/user/route.ts:1-7](../15-app-router-saas/app/api/user/route.ts#L1-L7)
 
 ```tsx
 import { getUser } from '@/lib/db/queries';
@@ -346,7 +346,7 @@ export async function GET() {
 
 ### Pages Router (API Routes)
 
-**File**: [pages/api/user.ts](15-pages-router-saas/pages/api/user.ts)
+**File**: [pages/api/user.ts](pages/api/user.ts)
 
 ```tsx
 import type { NextApiRequest, NextApiResponse } from 'next';
@@ -386,7 +386,7 @@ export default async function handler(
 
 ### Global Middleware (Same in Both)
 
-**File**: [middleware.ts](15-pages-router-saas/middleware.ts)
+**File**: [middleware.ts](middleware.ts)
 
 Both implementations use identical global middleware:
 
@@ -431,7 +431,7 @@ app/
 
 **Manual** in `getServerSideProps`:
 
-[pages/dashboard/index.tsx](15-pages-router-saas/pages/dashboard/index.tsx)
+[pages/dashboard/index.tsx](pages/dashboard/index.tsx)
 
 ```tsx
 export const getServerSideProps: GetServerSideProps = async (context) => {
@@ -470,7 +470,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
 **Server Actions** (native):
 
-[app/(login)/actions.ts:52-101](15-app-router-saas/app/(login)/actions.ts#L52-L101)
+[app/(login)/actions.ts:52-101](../15-app-router-saas/app/%28login%29/actions.ts#L52-L101)
 
 ```tsx
 'use server';
@@ -490,7 +490,7 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
 
 **Usage in Client Component**:
 
-[app/(login)/login.tsx:18-21](15-app-router-saas/app/(login)/login.tsx#L18-L21)
+[app/(login)/login.tsx:18-21](../15-app-router-saas/app/%28login%29/login.tsx#L18-L21)
 
 ```tsx
 'use client';
@@ -513,7 +513,7 @@ export function Login({ mode }) {
 
 **Adapted Server Actions**:
 
-[pages/sign-in.tsx](15-pages-router-saas/pages/sign-in.tsx)
+[pages/sign-in.tsx](pages/sign-in.tsx)
 
 ```tsx
 // Server Action defined in same file
@@ -539,7 +539,7 @@ export default function SignInPage() {
 
 **Usage**:
 
-[components/login.tsx](15-pages-router-saas/components/login.tsx)
+[components/login.tsx](components/login.tsx)
 
 ```tsx
 'use client';
@@ -570,7 +570,7 @@ export function Login({ action }) {
 
 ### App Router (Nested Layouts)
 
-**Root Layout**: [app/layout.tsx:18-44](15-app-router-saas/app/layout.tsx#L18-L44)
+**Root Layout**: [app/layout.tsx:18-44](../15-app-router-saas/app/layout.tsx#L18-L44)
 
 ```tsx
 export default function RootLayout({ children }) {
@@ -589,7 +589,7 @@ export default function RootLayout({ children }) {
 }
 ```
 
-**Dashboard Layout**: [app/(dashboard)/layout.tsx:99-106](15-app-router-saas/app/(dashboard)/layout.tsx#L99-L106)
+**Dashboard Layout**: [app/(dashboard)/layout.tsx:99-106](../15-app-router-saas/app/%28dashboard%29/layout.tsx#L99-L106)
 
 ```tsx
 export default function Layout({ children }) {
@@ -602,7 +602,7 @@ export default function Layout({ children }) {
 }
 ```
 
-**Nested Dashboard Layout**: [app/(dashboard)/dashboard/layout.tsx:9-73](15-app-router-saas/app/(dashboard)/dashboard/layout.tsx#L9-L73)
+**Nested Dashboard Layout**: [app/(dashboard)/dashboard/layout.tsx:9-73](../15-app-router-saas/app/%28dashboard%29/dashboard/layout.tsx#L9-L73)
 
 ```tsx
 export default function DashboardLayout({ children }) {
@@ -628,7 +628,7 @@ export default function DashboardLayout({ children }) {
 
 ### Pages Router (Manual Layouts)
 
-**App Wrapper**: [pages/_app.tsx](15-pages-router-saas/pages/_app.tsx)
+**App Wrapper**: [pages/_app.tsx](pages/_app.tsx)
 
 ```tsx
 export default function App({ Component, pageProps }: AppProps) {
@@ -642,7 +642,7 @@ export default function App({ Component, pageProps }: AppProps) {
 }
 ```
 
-**Document**: [pages/_document.tsx](15-pages-router-saas/pages/_document.tsx)
+**Document**: [pages/_document.tsx](pages/_document.tsx)
 
 ```tsx
 export default function Document() {
@@ -658,7 +658,7 @@ export default function Document() {
 }
 ```
 
-**Dashboard Layout Component**: [components/dashboard-layout.tsx](15-pages-router-saas/components/dashboard-layout.tsx)
+**Dashboard Layout Component**: [components/dashboard-layout.tsx](components/dashboard-layout.tsx)
 
 ```tsx
 export function DashboardLayout({ children }) {
@@ -674,7 +674,7 @@ export function DashboardLayout({ children }) {
 }
 ```
 
-**Usage in Page**: [pages/dashboard/index.tsx](15-pages-router-saas/pages/dashboard/index.tsx)
+**Usage in Page**: [pages/dashboard/index.tsx](pages/dashboard/index.tsx)
 
 ```tsx
 export default function DashboardPage() {

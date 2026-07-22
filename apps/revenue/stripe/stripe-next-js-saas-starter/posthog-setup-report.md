@@ -1,7 +1,16 @@
 <wizard-report>
 # PostHog post-wizard report
 
-The wizard has completed a deep integration of PostHog into this Next.js 15 SaaS Starter. PostHog is now initialized client-side via `instrumentation-client.ts` (the recommended approach for Next.js 15.3+), with a reverse proxy configured in `next.config.ts` to improve event delivery reliability. A server-side PostHog client (`lib/posthog-server.ts`) handles event capture in Server Actions and API routes. Users are identified both client-side (in `app/(dashboard)/layout.tsx` via the SWR `onSuccess` hook) and server-side (on sign-in and sign-up), using the database user ID as the distinct ID for consistent cross-domain correlation. Error tracking is enabled via `capture_exceptions: true` in the client init.
+<!-- sourcebound:role evidence -->
+
+**Snapshot:** repository commit `385e9e1287cc55d004883e22e7a73e8716ff6668`, inspected
+2026-07-21.
+
+The wizard configured PostHog in this Next.js 15 SaaS Starter. Client capture starts in
+`instrumentation-client.ts`, with a reverse proxy in `next.config.ts`. The server client in
+`lib/posthog-server.ts` captures events from Server Actions and API routes. Sign-in, sign-up, and
+dashboard loading identify the same database user ID on both sides. The client enables error
+tracking with `capture_exceptions: true`.
 
 | Event | Description | File |
 |---|---|---|
@@ -33,6 +42,7 @@ We've built some insights and a dashboard for you to keep an eye on user behavio
 
 ### Agent skill
 
-We've left an agent skill folder in your project. You can use this context for further agent development when using Claude Code. This will help ensure the model provides the most up-to-date approaches for integrating PostHog.
+The generated agent skill records the integration context for later maintenance. Treat this report
+as a snapshot; verify current setup against the listed files before changing it.
 
 </wizard-report>

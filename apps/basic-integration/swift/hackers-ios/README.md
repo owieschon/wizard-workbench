@@ -42,7 +42,7 @@ Requires **iOS/iPadOS 26 or later**. Also runs on Apple Silicon Macs and visionO
 - Accessibility upgrades across the app  
 - Foundation laid for future features and stability  
 
-See the full changelog on the [Releases page](../../releases).  
+See the full changelog on the [Releases page](https://github.com/weiran/Hackers/releases).
 
 ---
 
@@ -62,7 +62,7 @@ Contributions are welcome — see below.
 ## 🤝 Contributing
 
 We welcome issues and pull requests!  
-- Check the [issue tracker](../../issues) for open tasks  
+- Check the [issue tracker](https://github.com/weiran/Hackers/issues) for open tasks
 - Please follow the Swift style defined in `.swiftlint.yml`  
 - Add tests where reasonable (we use [Swift Testing](https://github.com/apple/swift-testing))  
 

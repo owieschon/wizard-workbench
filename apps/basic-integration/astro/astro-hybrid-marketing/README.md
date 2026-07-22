@@ -1,5 +1,7 @@
 # NeuralFlow AI - Astro Hybrid Marketing Site
 
+<!-- sourcebound:allow near-duplicate reason="Sibling Astro fixtures repeat shared setup so each runnable app remains standalone" -->
+
 A production-quality Astro hybrid site with static marketing pages and server-rendered API routes. This example is designed for testing the PostHog Wizard against real-world Astro applications.
 
 ## Overview

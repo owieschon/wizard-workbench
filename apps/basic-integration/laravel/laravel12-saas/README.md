@@ -191,18 +191,6 @@ Complete documentation is available in the [`docs/`](docs/) folder:
 - **[🔍 SEO Guide](docs/seo.md)** - Complete SEO implementation with Google Sitelinks
 - **[💳 Billing & Subscriptions](docs/billing.md)** - Stripe integration guide
 
-### SEO Features
-
-MVPable includes **production-ready SEO** out of the box:
-
-- ✅ Google Sitelinks optimization (SiteNavigationElement, BreadcrumbList schemas)
-- ✅ Complete structured data (Organization, WebSite, Article, FAQPage)
-- ✅ Enhanced meta tags (Open Graph, Twitter Cards, Article metadata)
-- ✅ Automatic sitemap generation with lastmod dates
-- ✅ Optimized robots.txt
-
-**👉 See the [Complete SEO Documentation](docs/seo.md) for setup and usage**
-
 ## Contributing
 We welcome contributions to improve MVPable! Please fork the repository and submit a pull request with your changes.
 

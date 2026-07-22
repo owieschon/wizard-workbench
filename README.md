@@ -1,16 +1,17 @@
 # wizard-workbench
 
-The wizard workbench is a few things: 
+wizard-workbench is a fixture collection and local harness for exercising [PostHog Wizard](https://github.com/PostHog/wizard) workflows. It contains sample applications in deliberately varied integration states under `apps/`, run and evaluation utilities under `services/`, and a macOS `phrocs` stack that connects sibling Wizard, Context Mill, and PostHog checkouts.
 
-1. A collection of PostHog-less apps and codebases for testing and experimenting with the [PostHog Wizard](https://github.com/PostHog/wizard)
-2. A toolbox of scripts and utilities to help you analyze, debug, and inspect Wizard runs
-3. A workshop and target practice environment where you can run the full local development stack
+A setup flow that works in one pristine app can still fail on the next framework or repository
+shape. The workbench keeps those cases repeatable enough to inspect the same failure twice.
 
-## Test apps
+Most application directories are forks or purpose-built fixtures. Their own READMEs describe those applications; this root guide covers how the workbench selects and runs them.
 
-Test apps are organized by workflow under `/apps/<workflow>/<framework>/<app-name>`.
+## Fixture apps
 
-```
+Fixture apps are organized by workflow under `/apps/<workflow>/<framework>/<app-name>`:
+
+```text
 apps/
 ├── basic-integration/    # Default PostHog integration
 │   ├── next-js/
@@ -27,7 +28,10 @@ apps/
     └── quack-quack
 ```
 
-To add a new test app, create a directory under the appropriate workflow folder in `/apps`.
+To add a fixture for an existing workflow, create a directory under that workflow's folder in
+`apps/`. To add a workflow, register its directory and command metadata in
+[`apps/manifest.json`](apps/manifest.json); the runners derive their command registry from that
+file.
 
 ## Workbench ownership
 
@@ -49,20 +53,22 @@ approval is not a merge gate.
 
 ## Services
 
-The `services/` directory is a toolbox for scripts and utilities to help with Wizard development.
+The `services/` directory contains the runners and analysis tools that operate on fixtures:
 
-```
+```text
 services/
-├── pr-evaluator/     # AI-powered code evaluation for PRs and branches
-├── wizard-ci/        # Automated wizard runs with PR creation
-├── wizard-run/       # Interactive wizard runner
-├── wizard-commands.ts # Registry of wizard commands (integration, revenue, …)
-└── github/           # GitHub/git utilities
+├── framework-detect/   # Run Wizard's deterministic project detectors
+├── pr-evaluator/       # Evaluate a PR or local branch
+├── wizard-benchmark/   # Repeat Wizard runs and retain measurements
+├── wizard-ci/          # Run Wizard, create PRs, and optionally evaluate them
+├── wizard-run/         # Select a workflow and fixture interactively
+├── yara-scan/          # Inspect generated YARA reports
+├── github/             # Shared GitHub and git utilities
+└── wizard-commands.ts  # Runtime view derived from apps/manifest.json
 ```
 
-Adding a new wizard command to the pickers: append an entry to
-`services/wizard-commands.ts`. All runners (`wizard-run`, `wizard-ci`,
-`wizard-benchmark`) read from that registry and pick it up automatically.
+`services/wizard-commands.ts` reads `apps/manifest.json` at runtime. Update the manifest instead
+of maintaining a second command list.
 
 ---
 
@@ -74,7 +80,7 @@ The workbench can run the entire Wizard stack in local development mode, with ho
 - [Wizard repo](https://github.com/PostHog/wizard)
 - [MCP repo](https://github.com/PostHog/posthog/tree/master/services/mcp) (within PostHog monorepo)
 
-![local dev stack](https://res.cloudinary.com/dmukukwp6/image/upload/q_auto,f_auto/pasted_image_2026_01_26_T20_15_17_777_Z_473d28d6e1.png)
+![Local development stack showing wizard-workbench connected to sibling Wizard, Context Mill, and PostHog MCP processes](https://res.cloudinary.com/dmukukwp6/image/upload/q_auto,f_auto/pasted_image_2026_01_26_T20_15_17_777_Z_473d28d6e1.png)
 
 ### Setup
 
@@ -88,10 +94,13 @@ This installs `phrocs`, clones `context-mill`, `wizard`, and `posthog` **as sibl
 
 macOS only for now.
 
-Flags: 
-`--force` overwrites an existing .env, 
-`--skip-posthog` skips the (large) monorepo clone, 
-`--non-interactive` skips the API key prompt.
+The setup script accepts three flags:
+
+| Flag | Effect |
+|---|---|
+| `--force` | Overwrite an existing `.env`. |
+| `--skip-posthog` | Skip the large PostHog monorepo clone. MCP processes remain unavailable until you provide `MCP_PATH`. |
+| `--non-interactive` | Skip the API-key prompt and leave the placeholder in `.env`. |
 
 > **Already have the repos / your own setup?** You don't need `fresh-setup` — it's for clean machines. Use the manual steps below to point `.env` at wherever your repos already live (any path works; they don't have to be siblings). `fresh-setup` is also safe to re-run: it skips repos that are already cloned and leaves an existing `.env` alone unless you pass `--force`.
 
@@ -149,7 +158,7 @@ Use keyboard shortcuts in phrocs: `r` to run/restart, `s` to stop, `q` to quit.
 
 | Process | Description |
 |---------|-------------|
-| `wizard-run` | Interactive picker: choose a wizard command (`posthog-wizard`, `posthog-wizard revenue`, …) then an app |
+| `wizard-run` | Interactive picker: choose a Wizard command (`wizard`, `wizard revenue-analytics`, …) then a fixture |
 | `wizard-tail-run` | Tail the wizard's verbose output (`/tmp/posthog-wizard.log`) |
 | `wizard-ci-run` | Full CI flow: run wizard, create PR, evaluate |
 | `wizard-ci-local-run` | CI flow with local evaluation (no PR) |
@@ -162,14 +171,15 @@ Use keyboard shortcuts in phrocs: `r` to run/restart, `s` to stop, `q` to quit.
 
 ## Pointing at prod vs. local backends
 
-Four knobs control where wizard traffic lands. Two are hardwired by the workbench, two are configurable:
+The workbench fixes two runner destinations, lets the MCP service configure one backend, and
+leaves the gateway override to direct Wizard invocations:
 
 | Knob | Default | Configurable? |
 |------|---------|---------------|
 | Wizard → MCP worker | `localhost:8787` | No — `--local-mcp` is always passed (`services/wizard-ci/utils.ts`) |
 | Wizard → context-mill skills | `localhost:8765` | No — same flag |
 | MCP worker → PostHog backend | Prod US/EU | **Yes** — `$MCP_PATH/.dev.vars` |
-| Wizard → LLM gateway | `gateway.us.posthog.com/wizard` | No — baked in at wizard build time |
+| Wizard → LLM gateway | Region-selected PostHog gateway | Not through workbench runners; direct `wizard` invocations accept `--base-url` |
 
 ### Point MCP worker at prod PostHog (default)
 
@@ -189,25 +199,34 @@ Restart the `mcp` proc.
 2. Uncomment the three lines above.
 3. Restart the `mcp` proc.
 
-### Point wizard at local LLM gateway
+### Point Wizard at a local LLM gateway
 
-Requires a wizard code change. The gateway URL is locked at build time — `wizard/tsdown.config.ts` hard-codes `NODE_ENV=production`, and `agent-interface.ts:697` unconditionally overwrites `ANTHROPIC_BASE_URL` at runtime.
+The workbench runners always pass `--local-mcp`, but they do not expose Wizard's
+`--base-url` option. To route a manual Wizard run through local PostHog and the local gateway,
+start PostHog on `:8010`, start `llm-gateway` on `:3308`, install or link the sibling Wizard's
+`wizard` executable, and run it directly against a fixture:
 
-To enable it:
+```bash
+wizard --base-url http://localhost:8010 --local-mcp --install-dir /path/to/fixture
+```
 
-1. In `wizard/tsdown.config.ts`, change `NODE_ENV: 'production'` to `NODE_ENV: process.env.NODE_ENV ?? 'production'`.
-2. Rebuild with `NODE_ENV=development pnpm build`.
-3. Start `llm-gateway` locally on `:3308` (no workbench proc does this today — run it from the `posthog/services/llm-gateway` repo yourself).
+Wizard derives `http://localhost:3308/wizard` from the local API host. No source edit or
+development-mode rebuild is required.
 
 ---
 
 ## Wizard CI/CD
 
-The Wizard CI automates running the PostHog Wizard on test apps, creating PRs with the changes, and evaluating the quality of the integration.
+Wizard CI runs PostHog Wizard against fixture apps, creates PRs with the changes, and evaluates the integration.
 
 ### Services
 
 The `wizard-ci` service runs the Wizard on a test app and handles the full CI flow. It also uses the `github` service to checkout branches and open PRs in the remote repo for code diffs.
+
+The evaluator rejects unknown command IDs before a model call and records that
+outcome as `rubric_mode: unknown-command` when product analytics is configured.
+Known commands without a dedicated rubric run in the explicit
+`generic-fallback` mode.
 
 ```bash
 # Run on a specific app

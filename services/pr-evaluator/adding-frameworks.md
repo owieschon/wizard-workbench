@@ -1,12 +1,8 @@
 # Adding a new framework to the evaluator
 
-After you've added your commandments to context-mill, the evaluator picks them up automatically. It fetches the latest commandments from GitHub on every run.
-
-The only thing you may need to do here is check framework detection.
+Use this guide after adding framework commandments to Context Mill. The evaluator loads those rules automatically; this repository only needs a change when its detector cannot classify the framework.
 
 ## Check framework detection
-
-There's usually no change needed here, but just to be safe, it's worth checking!
 
 Open `services/pr-evaluator/prompt-builder.ts` and check `detectFramework()`. If your framework uses common file extensions or dependency files (`.py`, `package.json`, `Gemfile`, etc.), it's likely already detected.
 
@@ -31,8 +27,11 @@ pnpm run evaluate -- -b HEAD --test-run my-framework-test
 
 Check the output for false positives:
 
-- `test-evaluations/my-framework-test/output.md` - are there false positives?
-- `test-evaluations/my-framework-test/scores.json` - does the confidence score make sense?
+<!-- sourcebound:allow-inline-document target="test-evaluations/my-framework-test/output.md" reason="The preceding evaluator command creates this per-run output" -->
+<!-- sourcebound:allow-inline-document target="test-evaluations/my-framework-test/scores.json" reason="The preceding evaluator command creates this per-run output" -->
+
+- `test-evaluations/my-framework-test/output.md`: check for false positives.
+- `test-evaluations/my-framework-test/scores.json`: check that the confidence score matches the evidence.
 
 If false positives exist, the commandments need to be more specific.
 
@@ -40,11 +39,11 @@ If false positives exist, the commandments need to be more specific.
 
 The evaluator fetches commandments at startup in this order:
 
-1. Fetches latest from GitHub - `PostHog/context-mill` main branch, 5s timeout
+1. Fetches the latest rules from the `PostHog/context-mill` main branch with a 5-second timeout
 2. Falls back to `COMMANDMENTS_PATH` env var if set (local context-mill checkout)
 3. Falls back to vendored copy at `services/pr-evaluator/prompts/commandments.yaml`
 4. Parses the YAML into `tag -> rules[]` map
 5. `detectFramework(prData)` matches PR files against known patterns to find tags
 6. Matching commandments are injected into the system prompt as authoritative SDK rules
 
-This means commandments in context-mill are picked up automatically on the next evaluator run - no manual sync needed.
+Context Mill changes therefore reach the next evaluator run without a manual sync.

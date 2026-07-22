@@ -1,6 +1,6 @@
-# MVPable Documentation
+# MVPable documentation
 
-Welcome to the MVPable documentation! This comprehensive guide will help you get started, configure, and extend your SaaS application.
+Use this index to install the fixture and find its current configuration, SEO, and billing guides.
 
 ## 📚 Documentation Index
 
@@ -13,29 +13,10 @@ Welcome to the MVPable documentation! This comprehensive guide will help you get
 - [SEO Guide](seo.md) - Complete SEO implementation with Google Sitelinks
 - [SEO Quick Reference](seo-quick-reference.md) - Quick reference for SEO features
 - [Billing & Subscriptions](billing.md) - Stripe integration and subscription management
-- [Admin Panel](admin-panel.md) - Filament admin panel usage
-- [Authentication](authentication.md) - User authentication and authorization
-
-### Development
-- [Architecture](architecture.md) - Project structure and architecture
-- [Customization](customization.md) - Customizing themes, branding, and more
-- [Adding Features](adding-features.md) - How to extend MVPable
-- [Testing](testing.md) - Running tests and writing test cases
-
-### Deployment
-- [Deployment Guide](deployment.md) - Deploy to production
-- [Environment Setup](environment.md) - Environment variables and configuration
 
 ### API Reference
 - [SEO Helper](seo.md#structured-data-helpers) - SEO helper methods
 - [Branding Config](configuration.md#branding-configuration) - Branding configuration options
-
-## 🚀 Quick Links
-
-- [Installation](installation.md)
-- [SEO Setup](seo.md)
-- [Configuration](configuration.md)
-- [Billing Setup](billing.md)
 
 ## 📖 Contributing
 

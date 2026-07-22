@@ -11,7 +11,6 @@ A cool, interactive web application that lets you explore country data using the
 - [Project Structure](#project-structure)
 - [Technologies Used](#technologies-used)
 - [Contributing](#contributing)
-- [License](#license)
 
 ## Features
 

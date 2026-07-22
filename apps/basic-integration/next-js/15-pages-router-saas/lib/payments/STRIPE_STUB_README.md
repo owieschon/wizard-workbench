@@ -15,7 +15,7 @@ This directory contains a stub implementation of the Stripe API that allows you 
 
 ### Option 1: Environment Variable (Recommended)
 
-Add to your [.env](.env) file:
+Copy [`.env.example`](../../.env.example) to `.env`, then set:
 
 ```bash
 STRIPE_MODE=stub

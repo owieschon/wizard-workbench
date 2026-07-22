@@ -5,7 +5,7 @@ Kamal makes it easy to set up a bare server, copy the application to it, and man
 
 (Kamal is also what we use to deploy Fizzy at 37signals. If you're curious about what our deployment configuration looks like, you can find it inside [`fizzy-saas`](https://github.com/basecamp/fizzy-saas).)
 
-This repo contains a starter deployment file that you can modify for your own specific use. That file lives at [config/deploy.yml](config/deploy.yml), which is the default place where Kamal will look for it.
+This repo contains a starter deployment file that you can modify for your own specific use. That file lives at [`config/deploy.yml`](../config/deploy.yml), which is the default place where Kamal will look for it.
 
 The steps to configure your very own Fizzy are:
 
@@ -110,4 +110,3 @@ Optional for S3-compatible endpoints:
 - `S3_FORCE_PATH_STYLE=true`
 - `S3_REQUEST_CHECKSUM_CALCULATION` (defaults to `when_supported`)
 - `S3_RESPONSE_CHECKSUM_VALIDATION` (defaults to `when_supported`)
-

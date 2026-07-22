@@ -190,5 +190,4 @@ public function handle(Request $request, Closure $next)
 ## Next Steps
 
 - [Configuration Guide](configuration.md)
-- [Admin Panel](admin-panel.md)
-- [Deployment Guide](deployment.md)
+- [Installation Guide](installation.md)

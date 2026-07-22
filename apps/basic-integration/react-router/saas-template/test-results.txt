@@ -3,7 +3,7 @@
 > vitest --reporter=verbose --run
 
 
- RUN  v4.0.6 /Users/jan/dev/react-router-saas-template
+ RUN  v4.0.6 <repository-root>
 
 No test files found, exiting with code 1
 
@@ -25,7 +25,7 @@ exclude:  **/node_modules/**, **/.git/**
 
 
 ⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
-Error: Failed to load url ../../../public/locales/en/dropzone.json (resolved id: ../../../public/locales/en/dropzone.json) in /Users/jan/dev/react-router-saas-template/app/features/localization/resources.ts. Does the file exist?
+Error: Failed to load url ../../../public/locales/en/dropzone.json (resolved id: ../../../public/locales/en/dropzone.json) in <repository-root>/app/features/localization/resources.ts. Does the file exist?
  ❯ reviveInvokeError node_modules/vite/dist/node/module-runner.js:472:14
  ❯ Object.invoke node_modules/vite/dist/node/module-runner.js:488:33
  ❯ ServerModuleRunner.getModuleInformation node_modules/vite/dist/node/module-runner.js:1052:7
